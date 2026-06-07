@@ -22,11 +22,11 @@ def draw_response(u, sigma, scale_factor, vmax=None, title="", u_std=None):
     fig, ax = plt.subplots(figsize=(13, 5.0))
     ax.add_collection(LineCollection(ELEM_SEGMENTS_UNDEF, colors="0.78",
                                      linestyles="--", linewidths=0.6, alpha=0.7))
-    # 불확실성 구름 (노드별 |u_std| 크기의 반투명 점) — 변형형상 아래 깔기
+    # 불확실성 점 (노드별 |u_std| 크기의 작은 반투명 점) — 센서(초록) 원보다 작게
     if u_std is not None:
-        unc = np.linalg.norm(u_std, axis=1) * scale_factor      # (102,) mm 단위(과장)
+        unc_mm = np.linalg.norm(u_std, axis=1)                  # (102,) mm (과장 안 함)
         ax.scatter(deformed[:, 0], deformed[:, 1],
-                   s=np.clip(unc * 1.2, 2, 400), color="orange", alpha=0.18,
+                   s=np.clip(unc_mm * 12, 2, 24), color="orange", alpha=0.30,
                    zorder=2, label="uncertainty (±std)")
     lc = LineCollection(seg_def, cmap="RdBu_r", norm=norm, linewidths=2.4, zorder=3)
     lc.set_array(sigma)
