@@ -19,7 +19,8 @@ def draw_response(u, sigma, scale_factor, vmax=None, title="", u_std=None):
         vmax = max(float(np.abs(sigma).max()), 1e-6)
     norm = TwoSlopeNorm(vmin=-vmax, vcenter=0.0, vmax=vmax)
 
-    fig, ax = plt.subplots(figsize=(13, 5.0))
+    fig, ax = plt.subplots(figsize=(13, 5.0), facecolor="white")
+    ax.set_facecolor("white")
     ax.add_collection(LineCollection(ELEM_SEGMENTS_UNDEF, colors="0.78",
                                      linestyles="--", linewidths=0.6, alpha=0.7))
     # 불확실성 점 (노드별 |u_std| 크기의 작은 반투명 점) — 센서(초록) 원보다 작게
