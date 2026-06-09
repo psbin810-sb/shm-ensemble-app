@@ -13,6 +13,9 @@ app.py — 구조물 응답 복원 데모 (Streamlit 웹앱)
 실행:  streamlit run app.py
 """
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import streamlit as st
 
 from ensemble_core import (EnsembleResults, build_branch_from_dstrain_drot,
@@ -124,50 +127,37 @@ elif mode == "예시 가상 데이터":
 # ──────────────────────────────────────────────────────────────────
 else:
     st.subheader("실시간 복원")
-    cc = st.columns([1, 1, 2])
-    playing = cc[0].toggle("▶ 재생", value=False, key="rt_play")
-    speed = cc[1].selectbox("재생 속도", [1, 2, 5, 10], index=1,
-                            help="한 번에 건너뛸 시점 수")
+    SPEED = 5          # 한 틱에 5시점씩 진행 (고정)
+    INTERVAL = 0.5     # 틱 간격(초) — 애니메이션 속도
+
     if "rt_idx" not in st.session_state:
         st.session_state.rt_idx = 0
-    idx = st.slider("재생 위치", 0, R.T - 1, st.session_state.rt_idx, key="rt_slider")
-    st.session_state.rt_idx = idx
 
-    ph_metrics = st.container()
-    ph_fig = st.empty()
-    ph_hist = st.empty()
-
-    def render(i):
+    # 자동 재생: fragment 영역만 주기적으로 다시 그림 (전체 rerun 안 함 → 깜빡임 없음)
+    @st.fragment(run_every=INTERVAL)
+    def animate():
+        i = int(st.session_state.rt_idx) % R.T
         cs = R.case(i)
-        with ph_metrics:
-            metrics_row(cs["u"], cs["sigma"], cs["u_std"] if show_unc else None)
-        ph_fig.pyplot(draw_response(
+        metrics_row(cs["u"], cs["sigma"], cs["u_std"] if show_unc else None)
+        fig = draw_response(
             cs["u"], cs["sigma"], scale_factor, vmax=VMAX,
             title=f"Realtime  test idx={cs['idx_te']}  step {i+1}/{R.T}",
-            u_std=cs["u_std"] if show_unc else None))
+            u_std=cs["u_std"] if show_unc else None)
+        st.pyplot(fig)
+        plt.close(fig)
         # 들어오는 센서 데이터(최근 이력)
         s0 = max(0, i - 120)
         eps_hist = R.eps_meas[s0:i + 1] * 1e6   # µε
-        ph_hist.line_chart(
+        st.line_chart(
             {f"{t} (µε)": eps_hist[:, j] for j, t in enumerate(SENSOR_FILE_TAG)},
             height=160)
+        # 다음 프레임으로 진행 (다음 자동 rerun 때 반영)
+        st.session_state.rt_idx = (i + SPEED) % R.T
 
-    render(idx)
-
-    @st.fragment(run_every=0.6 if playing else None)
-    def autoplay():
-        if not st.session_state.get("rt_play"):
-            return
-        nxt = st.session_state.rt_idx + int(speed)
-        if nxt >= R.T:
-            nxt = 0
-        st.session_state.rt_idx = nxt
-        st.rerun()
-
-    autoplay()
+    animate()
 
     with st.expander("ℹ️ 이 모드 설명"):
         st.markdown(
-            "- 720개 테스트 시점을 시간순 재생합니다.\n"
-            "- **들어오는 센서 데이터**(eps_meas) → **복원한 전역 변위/응력** + "
+            "- 테스트 시점을 시간순으로 **자동 재생**합니다(항상 재생, 속도 5).\n"
+            "- **들어오는 센서 데이터** → **복원한 전역 변위/응력** + "
             "**불확실성(±std, 주황 점)**.")
