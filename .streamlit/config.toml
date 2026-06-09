@@ -1,0 +1,6 @@
+# 모든 기기에서 항상 라이트(흰색) 테마로 고정 — 폰 다크모드여도 흰 배경
+[theme]
+base = "light"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#262730"
